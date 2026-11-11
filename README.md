@@ -43,7 +43,7 @@ bytes: 45 46 49 20 50 41 52 54
 ## Build integration
 
 The driver is not a standalone EDK2 platform. It is copied into the existing
-R11 UEFI package, added to `APRIORI.inc` before `ClockDxe`, and built with the
+R11 UEFI package, added to `DXE.inc` before the XNU-driving modules, and built with the
 normal `build-r11.sh` wrapper.
 
 ```sh
