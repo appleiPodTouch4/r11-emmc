@@ -22,6 +22,14 @@ def readme_log():
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/status.json":
+            b = (RUNS / "status.json").read_bytes() if (RUNS / "status.json").exists() else b"{}"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(b)))
+            self.end_headers()
+            self.wfile.write(b)
+            return
         if self.path.startswith("/latest.jpg"):
             f = latest_frame()
             if f:
