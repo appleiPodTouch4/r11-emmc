@@ -1,0 +1,7 @@
+[
+  {
+    "name": "cmdreset",
+    "image": "boot-control/boot-r11-emmc-cmdreset.img",
+    "note": "CMD1 timeout -> SWRST_CMD -> retry"
+  }
+]
