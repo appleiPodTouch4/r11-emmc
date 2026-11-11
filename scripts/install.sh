@@ -41,7 +41,7 @@ s = dxe.read_text()
 if "R11EmmcTestDxe/R11EmmcTestDxe.inf" not in s:
     marker = "  INF SiliciumPkg/Drivers/SimpleFbDxe/SimpleFbDxe.inf\n"
     if marker in s:
-        s = s.replace(marker, dxe_line + marker, 1)
+        s = s.replace(marker, marker + dxe_line, 1)
     else:
         s += dxe_line
     dxe.write_text(s)
