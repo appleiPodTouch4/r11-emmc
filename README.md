@@ -103,3 +103,9 @@ Do **not** flash. The driver halts, so XNU is never entered.
 | 3 | 2026-11-11 21:28:11 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |
 | 1 | 2026-11-11 21:39:59 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |
 | 2 | 2026-11-11 21:42:53 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |
+| 1 | 2026-11-11 22:02:23 | ok | QR R11|stage=cmd1|ps=01F800F1|int=00018000|c0=1|c1=3|never=1 |
+| 2 | 2026-11-11 22:04:19 | ok | QR R11|stage=cmd1|ps=01F800F1|int=00018000|c0=1|c1=3|never=1 |
+| 3 | 2026-11-11 22:05:56 | ok | QR R11|stage=cmd1|ps=01F800F1|int=00018000|c0=1|c1=3|never=1 |
+| 4 | 2026-11-11 22:07:23 | ok | QR R11|stage=cmd1|ps=01F800F1|int=00018000|c0=1|c1=3|never=1 |
+| 5 | 2026-11-11 22:08:52 | ok | QR R11|stage=cmd1|ps=01F800F1|int=00018000|c0=1|c1=3|never=1 |
+| cmdreset | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
