@@ -1,4 +1,4 @@
-# r11-emmc-test
+# r11-emmc
 
 Fast, XNU-free eMMC probe for OPPO R11 (CPH1707, SDM660).
 
@@ -64,7 +64,7 @@ After the test, remove it from the normal build:
 Then boot manually:
 
 ```sh
-fastboot boot boot-control/boot-r11-emmc-test.img
+fastboot boot boot-control/boot-r11-emmc.img
 ```
 
 Do **not** flash. The driver halts, so XNU is never entered.
@@ -80,7 +80,7 @@ Do **not** flash. The driver halts, so XNU is never entered.
 
 - Driver source and integration script: compiled into a UEFI FD
 - UEFI FD: `b550d702f5d0dc94065a7d772b66d6386a50c6dae611793bc79175a254defd78`
-- Test boot image: `boot-control/boot-r11-emmc-test.img`
+- Test boot image: `boot-control/boot-r11-emmc.img`
   - 8,634,368 bytes
   - sha256 `2ac0af395f317e45b17a243db7b0173a0233a6e0307276ecd79748eb4cf55e04`
 - Not yet tested on hardware
