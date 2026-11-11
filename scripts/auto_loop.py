@@ -5,11 +5,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT.parent
-IMAGE = WORK / "boot-control/boot-r11-emmc-test10.img"
+IMAGE = WORK / "boot-control/boot-r11-emmc-test11.img"
 RUNS = ROOT / "runs"
 CAM = "http://192.168.31.196:8080/"
 FASTBOOT = "/usr/local/bin/fastboot"
 OCR = ROOT / "scripts/ocr-bin"
+FASTBOOT_TIMEOUT = 300
+README = ROOT / "README.md"
 
 def camera_has_frame(timeout=8):
     try:
@@ -57,14 +59,48 @@ def conclusion(frames):
     return (f"CMD0={cmd0} CMD1_timeouts={timeouts} never_ready={never} "
             f"ps={psm[-1] if psm else '?'} int={ints[-1] if ints else '?'}")
 
-def fastboot_ready(timeout=120):
-    end = time.time() + timeout
-    while time.time() < end:
-        p = subprocess.run([FASTBOOT, "devices"], capture_output=True, text=True)
-        if p.stdout.strip():
-            return True
-        time.sleep(2)
+def grab_one_frame(path, timeout=8):
+    try:
+        r = urllib.request.urlopen(CAM, timeout=timeout)
+        buf = b""
+        end = time.time() + timeout
+        while time.time() < end:
+            buf += r.read(65536)
+            a = buf.find(b"\xff\xd8")
+            b = buf.find(b"\xff\xd9", a + 2) if a >= 0 else -1
+            if a >= 0 and b > a:
+                path.write_bytes(buf[a:b + 2])
+                return True
+    except Exception:
+        pass
     return False
+
+def wait_for_fastboot_text(timeout=FASTBOOT_TIMEOUT):
+    """Wait for the literal Fastboot screen, not just a USB device."""
+    ensure_ocr()
+    end = time.time() + timeout
+    tmp = ROOT / "runs" / "fastboot-check.jpg"
+    tmp.parent.mkdir(exist_ok=True)
+    while time.time() < end:
+        if not camera_has_frame():
+            time.sleep(3)
+            continue
+        if grab_one_frame(tmp):
+            text = ocr_text(tmp)
+            low = text.lower()
+            if "fastboot" in low or "已进入" in text or "fastboot" in text:
+                return True
+        time.sleep(5)
+    return False
+
+def append_readme(rnd, conclusion, status="ok"):
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    header = "\n## Automation log\n\n| round | time | status | conclusion |\n|---|---|---|---|\n"
+    if not README.exists() or "## Automation log" not in README.read_text():
+        with README.open("a") as f:
+            f.write(header)
+    with README.open("a") as f:
+        f.write(f"| {rnd} | {stamp} | {status} | {conclusion} |\n")
 
 def main():
     RUNS.mkdir(exist_ok=True)
@@ -86,9 +122,11 @@ def main():
         log = d / "round.log"
         with log.open("w") as f:
             f.write(f"round {rnd}\n")
-            if not fastboot_ready():
-                f.write("fastboot not ready; skipped\n")
-                continue
+            if not wait_for_fastboot_text():
+                f.write("no Fastboot text for 300 s; stopped\n")
+                append_readme(rnd, "no Fastboot text for 300 s", "stopped")
+                print("FASTBOOT TEXT LOST - stop", flush=True)
+                return 0
             p = subprocess.run([FASTBOOT, "boot", str(IMAGE)],
                                capture_output=True, text=True)
             f.write(p.stdout + p.stderr + "\n")
@@ -98,9 +136,13 @@ def main():
         c = conclusion(sorted((d / "frames").glob("*.jpg")))
         with log.open("a") as f:
             f.write(f"CONCLUSION {c}\n")
+        append_readme(rnd, c)
         print(f"round {rnd} CONCLUSION {c}", flush=True)
-        # The test image resets after its countdown; wait for the auto-fastboot loop.
-        fastboot_ready(120)
+        # Wait for the Fastboot screen to come back; this is the stop condition.
+        if not wait_for_fastboot_text():
+            append_readme(rnd, "Fastboot screen not seen for 300 s", "stopped")
+            print("FASTBOOT TEXT LOST - stop", flush=True)
+            return 0
 
 if __name__ == "__main__":
     sys.exit(main())
