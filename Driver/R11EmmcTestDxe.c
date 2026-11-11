@@ -18,6 +18,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiDriverEntryPoint.h>
 #include <Library/UefiLib.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
 
 #define SDCC_BASE             0x0C0C4000u
 
@@ -177,6 +178,23 @@ SdCommand (
   return EFI_SUCCESS;
 }
 
+STATIC
+VOID
+R11Finish (
+  VOID
+  )
+{
+  UINTN  i;
+
+  for (i = 15; i > 0; i--) {
+    Print (L"\r[R11EMMC] reboot in %02u s...", (UINT32)i);
+    gBS->Stall (1000000);
+  }
+  Print (L"\r\n[R11EMMC] reset now\r\n");
+  gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, 0, NULL);
+  CpuDeadLoop ();
+}
+
 EFI_STATUS
 EFIAPI
 R11EmmcTestEntry (
@@ -225,7 +243,7 @@ R11EmmcTestEntry (
   MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0x0001);
   if (WaitBits16 (SDHCI_CLOCK_CONTROL, 0x0002, 0x0002, 100000) != EFI_SUCCESS) {
     Print (L"[R11EMMC] clock never stable\r\n");
-    CpuDeadLoop ();
+    R11Finish ();
   }
   MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0xFA05);
   MmioWrite32 (SDCC_BASE + SDHCI_CORE_VENDOR, 0xA9Cu);
@@ -248,7 +266,7 @@ R11EmmcTestEntry (
 
   if (Rca == 0) {
     Print (L"[R11EMMC] no RCA, stop\r\n");
-    CpuDeadLoop ();
+    R11Finish ();
   }
 
   ZeroMem (Block, sizeof (Block));
@@ -266,6 +284,6 @@ R11EmmcTestEntry (
          Block[0], Block[1], Block[2], Block[3],
          Block[4], Block[5], Block[6], Block[7]);
 
-  CpuDeadLoop ();
+  R11Finish ();
   return EFI_SUCCESS;
 }
