@@ -54,10 +54,17 @@ def ocr_text(path):
 
 def conclusion(frames):
     text = ""
-    # The test screen is in the middle of the capture; Fastboot is at the end.
-    # Sample frames so OCR cannot spend minutes on 50+ images.
     ordered = sorted(frames, key=lambda x: x.name)
-    for p in ordered[::4]:
+    # The useful test screen is around 15-35 s.  Do not OCR every frame.
+    wanted = []
+    for target in (20, 25, 15, 30):
+        if ordered:
+            wanted.append(min(ordered, key=lambda p: abs(float(p.stem[1:]) - target)))
+    seen = set()
+    for p in wanted:
+        if p in seen:
+            continue
+        seen.add(p)
         t = ocr_text(p)
         low = t.lower()
         if "time out" in low or "never ready" in low or "r11emmc" in low:
