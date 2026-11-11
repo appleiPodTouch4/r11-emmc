@@ -180,6 +180,18 @@ SdCommand (
 
 STATIC
 VOID
+Stage (
+  IN UINT32        Number,
+  IN UINT32        Total,
+  IN CONST CHAR16  *Text
+  )
+{
+  Print (L"\r\n[R11EMMC] STEP %u/%u: %s\r\n", Number, Total, Text);
+  gBS->Stall (1500000);
+}
+
+STATIC
+VOID
 R11Finish (
   VOID
   )
@@ -227,10 +239,12 @@ R11EmmcTestEntry (
   Power  = MmioRead8  (SDCC_BASE + SDHCI_POWER_CONTROL);
   Clock  = MmioRead16 (SDCC_BASE + SDHCI_CLOCK_CONTROL);
 
-  Print (L"\r\n[R11EMMC] fast probe, no XNU\r\n");
+  Stage (1, 5, L"read SDHCI registers");
   Print (L"[R11EMMC] ps=%08x hc1=%02x hc2=%04x caps=%08x vs=%08x\r\n",
          Ps, Hc1, Hc2, Caps, Vendor);
   Print (L"[R11EMMC] pwr=%02x clk=%04x\r\n", Power, Clock);
+
+  Stage (2, 5, L"enable 3.3 V / 400 kHz / 1-bit");
 
   /* The bootloader can leave the SD clock gated after handoff.  Enable 3.3 V,
    * a 400 kHz card clock (divider 0xFA for a 200 MHz base), and 1-bit mode
@@ -250,6 +264,7 @@ R11EmmcTestEntry (
   Clock = MmioRead16 (SDCC_BASE + SDHCI_CLOCK_CONTROL);
   Print (L"[R11EMMC] clk after=%04x\r\n", Clock);
 
+  Stage (3, 5, L"CMD13 RCA 1..8");
   Rca = 0;
   for (i = 1; i <= 8; i++) {
     ZeroMem (Resp, sizeof (Resp));
@@ -262,6 +277,7 @@ R11EmmcTestEntry (
       break;
     }
     Print (L"[R11EMMC] cmd13 rca=%u err=%r\r\n", (UINT32)i, Status);
+    gBS->Stall (500000);
   }
 
   if (Rca == 0) {
@@ -269,6 +285,7 @@ R11EmmcTestEntry (
     R11Finish ();
   }
 
+  Stage (4, 5, L"CMD17 LBA1 with PIO");
   ZeroMem (Block, sizeof (Block));
   Status = SdCommand (17, 1, SDHCI_CMD_R48 | SDHCI_CMD_CRC |
                       SDHCI_CMD_INDEX | SDHCI_CMD_DATA,
@@ -278,6 +295,7 @@ R11EmmcTestEntry (
     D1 = (D1 << 8) | Block[i];
   }
 
+  Stage (5, 5, L"result");
   Print (L"[R11EMMC] cmd17 err=%r d1=%016lx st=%08x\r\n",
          Status, D1, Resp[0]);
   Print (L"[R11EMMC] bytes: %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
