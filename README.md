@@ -109,3 +109,18 @@ Do **not** flash. The driver halts, so XNU is never entered.
 | 4 | 2026-11-11 22:07:23 | ok | QR R11|stage=cmd1|ps=01F800F1|int=00018000|c0=1|c1=3|never=1 |
 | 5 | 2026-11-11 22:08:52 | ok | QR R11|stage=cmd1|ps=01F800F1|int=00018000|c0=1|c1=3|never=1 |
 | cmdreset | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| cmd0zero | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| 1v8 | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| pwrcycle | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| corevendor | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+
+## 2026-11-11 eMMC variant results
+
+| variant | result |
+|---|---|
+| cmdreset | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| cmd0zero | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| 1v8 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| pwrcycle | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| corevendor | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| swreset | HUNG before QR; SWRST_ALL wait never completed |
