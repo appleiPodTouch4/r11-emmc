@@ -64,7 +64,7 @@ After the test, remove it from the normal build:
 Then boot manually:
 
 ```sh
-fastboot boot boot-control/boot-r11-emmc-qr.img
+fastboot boot boot-control/boot-r11-emmc-qr3.img
 ```
 
 Do **not** flash. The driver halts, so XNU is never entered.
@@ -79,10 +79,12 @@ Do **not** flash. The driver halts, so XNU is never entered.
 ## Status
 
 - Driver source and integration script: compiled into a UEFI FD
-- UEFI FD: `b1aebe9aa0efe74c011cfbcd3358641d6e0ef6178a24bb34fa62cbef807b04ec`
-- Test boot image: `boot-control/boot-r11-emmc-qr.img`
-  - 8,638,464 bytes
-  - sha256 `c716a5e0d0a604498db71af25cbf704c7af76d6b89ff9dcd8a88a5a74047c4ec`
+- UEFI FD: `67c98da047c01f65f9b15bd246c97637104faae518b7bd4adb6a639cccb38f8d`
+- Test boot image: `boot-control/boot-r11-emmc-qr3.img`
+  - 8,642,560 bytes
+  - sha256 `029ee3d864906da162dee09d1936804d90673ef464fb4cd0f4621fbb259988a8`
+  - `R11EmmcTestDxe` is after `SimpleFbDxe`, so `EFI_GRAPHICS_OUTPUT_PROTOCOL` exists
+  - The result QR is drawn after a 20 s wait and stays visible for 20 s
   - `R11EmmcTestDxe` is in `DXE.inc`, before the XNU-driving modules
   - Displays the result as a QR code before the 20 s countdown/reset
 - Not yet tested on hardware
