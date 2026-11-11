@@ -16,7 +16,7 @@ OCR = ROOT / "scripts/ocr-bin"
 QRDEC = ROOT / "scripts/qrdecode-bin"
 STATUS = RUNS / "status.json"
 README = ROOT / "README.md"
-FASTBOOT_TIMEOUT = 300
+FASTBOOT_TIMEOUT = 180
 
 def status(round_no, test, phase, detail=""):
     STATUS.parent.mkdir(exist_ok=True)
@@ -124,7 +124,7 @@ def main():
             return 0
         if not wait_fastboot():
             status(no, name, "fastboot lost")
-            append_readme(no, name, "no Fastboot text for 300 s", "stopped")
+            append_readme(no, name, "no Fastboot text for 180 s", "stopped")
             print(f"test {no} {name}: FASTBOOT LOST", flush=True)
             return 0
         status(no, name, "booting")
@@ -144,7 +144,7 @@ def main():
         print(f"test {no} {name}: {c}", flush=True)
         # Wait for the next test's Fastboot screen before continuing.
         if not wait_fastboot():
-            append_readme(no, name, "next Fastboot not seen for 300 s", "stopped")
+            append_readme(no, name, "next Fastboot not seen for 180 s", "stopped")
             print("NEXT FASTBOOT LOST - stop", flush=True)
             return 0
     status(len(tests), "all", "complete")

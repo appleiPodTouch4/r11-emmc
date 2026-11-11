@@ -10,7 +10,7 @@ RUNS = ROOT / "runs"
 CAM = "http://192.168.31.196:8080/"
 FASTBOOT = "/usr/local/bin/fastboot"
 OCR = ROOT / "scripts/ocr-bin"
-FASTBOOT_TIMEOUT = 300
+FASTBOOT_TIMEOUT = 180
 README = ROOT / "README.md"
 STATUS = RUNS / "status.json"
 
@@ -177,8 +177,8 @@ def main():
             f.write(f"round {rnd}\n")
             status(rnd, "waiting Fastboot text")
             if not wait_for_fastboot_text():
-                f.write("no Fastboot text for 300 s; stopped\n")
-                append_readme(rnd, "no Fastboot text for 300 s", "stopped")
+                f.write("no Fastboot text for 180 s; stopped\n")
+                append_readme(rnd, "no Fastboot text for 180 s", "stopped")
                 print("FASTBOOT TEXT LOST - stop", flush=True)
                 return 0
             status(rnd, "booting test image")
@@ -198,7 +198,7 @@ def main():
         print(f"round {rnd} CONCLUSION {c}", flush=True)
         # Wait for the Fastboot screen to come back; this is the stop condition.
         if not wait_for_fastboot_text():
-            append_readme(rnd, "Fastboot screen not seen for 300 s", "stopped")
+            append_readme(rnd, "Fastboot screen not seen for 180 s", "stopped")
             print("FASTBOOT TEXT LOST - stop", flush=True)
             return 0
 
