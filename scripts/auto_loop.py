@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Boot test10, capture the UEFI screen, repeat until the camera goes away."""
-import os, re, subprocess, sys, time, urllib.request
+import json, os, re, subprocess, sys, time, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -12,6 +12,14 @@ FASTBOOT = "/usr/local/bin/fastboot"
 OCR = ROOT / "scripts/ocr-bin"
 FASTBOOT_TIMEOUT = 300
 README = ROOT / "README.md"
+STATUS = RUNS / "status.json"
+
+def status(rnd, phase, detail=""):
+    STATUS.parent.mkdir(exist_ok=True)
+    STATUS.write_text(json.dumps({
+        "round": rnd, "phase": phase, "detail": detail,
+        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }, ensure_ascii=False))
 
 def camera_has_frame(timeout=8):
     try:
@@ -46,10 +54,15 @@ def ocr_text(path):
 
 def conclusion(frames):
     text = ""
-    for p in sorted(frames, key=lambda x: x.name)[-8:]:
-        text = ocr_text(p)
-        if "time out" in text.lower() or "never ready" in text.lower():
-            break
+    # The test screen is in the middle of the capture; the last frames are the
+    # Fastboot screen again.  Scan the whole round, not just the tail.
+    for p in sorted(frames, key=lambda x: x.name):
+        t = ocr_text(p)
+        low = t.lower()
+        if "time out" in low or "never ready" in low or "r11emmc" in low:
+            text = t
+            if "never ready" in low:
+                break
     low = text.lower()
     cmd0 = "success" if "success" in low else "unknown"
     timeouts = low.count("time out")
@@ -108,6 +121,7 @@ def main():
     rnd = 0
     while True:
         rnd += 1
+        status(rnd, "waiting camera")
         if not camera_has_frame():
             cam_fail += 1
             print(f"camera missing ({cam_fail}/3)", flush=True)
@@ -122,14 +136,17 @@ def main():
         log = d / "round.log"
         with log.open("w") as f:
             f.write(f"round {rnd}\n")
+            status(rnd, "waiting Fastboot text")
             if not wait_for_fastboot_text():
                 f.write("no Fastboot text for 300 s; stopped\n")
                 append_readme(rnd, "no Fastboot text for 300 s", "stopped")
                 print("FASTBOOT TEXT LOST - stop", flush=True)
                 return 0
+            status(rnd, "booting test image")
             p = subprocess.run([FASTBOOT, "boot", str(IMAGE)],
                                capture_output=True, text=True)
             f.write(p.stdout + p.stderr + "\n")
+        status(rnd, "capturing screen")
         subprocess.run([sys.executable, str(ROOT / "scripts/camera_capture.py"),
                         str(d / "frames"), "55", "1"], check=False)
         ensure_ocr()
@@ -137,6 +154,7 @@ def main():
         with log.open("a") as f:
             f.write(f"CONCLUSION {c}\n")
         append_readme(rnd, c)
+        status(rnd, "round done", c)
         print(f"round {rnd} CONCLUSION {c}", flush=True)
         # Wait for the Fastboot screen to come back; this is the stop condition.
         if not wait_for_fastboot_text():
