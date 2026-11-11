@@ -64,14 +64,14 @@ After the test, remove it from the normal build:
 Then boot manually:
 
 ```sh
-fastboot boot boot-control/boot-r11-emmc.img
+fastboot boot boot-control/boot-r11-emmc-test2.img
 ```
 
 Do **not** flash. The driver halts, so XNU is never entered.
 
 ## Why a DXE driver
 
-- Automatically dispatched from `APRIORI.inc`
+- Automatically dispatched from `DXE.inc` before XNU drivers
 - No UEFI Shell, menu or payload needed
 - Runs in seconds instead of waiting for the XNU panel
 - `CpuDeadLoop()` keeps the result visible for a photograph
@@ -79,10 +79,11 @@ Do **not** flash. The driver halts, so XNU is never entered.
 ## Status
 
 - Driver source and integration script: compiled into a UEFI FD
-- UEFI FD: `b550d702f5d0dc94065a7d772b66d6386a50c6dae611793bc79175a254defd78`
-- Test boot image: `boot-control/boot-r11-emmc.img`
-  - 8,634,368 bytes
-  - sha256 `2ac0af395f317e45b17a243db7b0173a0233a6e0307276ecd79748eb4cf55e04`
+- UEFI FD: `104cf85faf9dfbf0f42f5ef2e7dde49324771640e2406a57061814f25bc34548`
+- Test boot image: `boot-control/boot-r11-emmc-test2.img`
+  - 8,638,464 bytes
+  - sha256 `b6d2b1663e87c90f2c07d1276c170c609d7753f98353a6d6aa555c0586ff0976`
+  - `R11EmmcTestDxe` is in `DXE.inc`, before the XNU-driving modules
 - Not yet tested on hardware
 - The test driver was removed from the normal UEFI build after this image was
   produced, so ordinary builds do not halt in `CpuDeadLoop()`

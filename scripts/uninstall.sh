@@ -5,10 +5,11 @@ set -eu
 ROOT=${1:-${UNIXNU_ROOT:-/Users/mry0000/Desktop/unixnu_r11}}
 DEST="$ROOT/UniXNU/package/UniXNUPkg/Driver/R11EmmcTestDxe"
 DSC="$ROOT/uefi-r11-base/Platforms/OPPO/r11Pkg/r11.dsc"
+DXE="$ROOT/uefi-r11-base/Platforms/OPPO/r11Pkg/Include/DXE.inc"
 APRIORI="$ROOT/uefi-r11-base/Platforms/OPPO/r11Pkg/Include/APRIORI.inc"
 
 rm -rf "$DEST"
-python3 - "$DSC" "$APRIORI" <<'PY'
+python3 - "$DSC" "$DXE" "$APRIORI" <<'PY'
 import sys
 from pathlib import Path
 for name in sys.argv[1:]:
