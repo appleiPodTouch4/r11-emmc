@@ -10,6 +10,9 @@ guard let img = NSImage(contentsOfFile: path),
 let req = VNRecognizeTextRequest()
 req.recognitionLevel = .accurate
 req.usesLanguageCorrection = false
+if CommandLine.arguments.count < 3 || CommandLine.arguments[2] != "--full" {
+    req.regionOfInterest = CGRect(x: 0.05, y: 0.55, width: 0.75, height: 0.42)
+}
 let handler = VNImageRequestHandler(cgImage: cg, options: [:])
 try handler.perform([req])
 for obs in req.results ?? [] {

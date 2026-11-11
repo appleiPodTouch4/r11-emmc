@@ -44,10 +44,10 @@ def ensure_ocr():
                     str(ROOT / "scripts/ocr.swift"), "-o", str(OCR)],
                    check=True)
 
-def ocr_text(path):
+def ocr_text(path, full=False):
     try:
-        p = subprocess.run([str(OCR), str(path)], capture_output=True,
-                           text=True, timeout=6)
+        cmd = [str(OCR), str(path)] + (["--full"] if full else [])
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
         return p.stdout
     except Exception:
         return ""
@@ -107,7 +107,7 @@ def wait_for_fastboot_text(timeout=FASTBOOT_TIMEOUT):
             time.sleep(3)
             continue
         if grab_one_frame(tmp):
-            text = ocr_text(tmp)
+            text = ocr_text(tmp, full=True)
             low = text.lower()
             if "fastboot" in low or "已进入" in text or "fastboot" in text:
                 return True

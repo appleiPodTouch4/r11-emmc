@@ -64,7 +64,7 @@ After the test, remove it from the normal build:
 Then boot manually:
 
 ```sh
-fastboot boot boot-control/boot-r11-emmc-test11.img
+fastboot boot boot-control/boot-r11-emmc-qr.img
 ```
 
 Do **not** flash. The driver halts, so XNU is never entered.
@@ -79,16 +79,25 @@ Do **not** flash. The driver halts, so XNU is never entered.
 ## Status
 
 - Driver source and integration script: compiled into a UEFI FD
-- UEFI FD: `6f97ca8693b28e331fcca16c804d48153528bcb3bf9ad11164dbba5a56981592`
-- Test boot image: `boot-control/boot-r11-emmc-test11.img`
+- UEFI FD: `PLACEHOLDER`
+- Test boot image: `boot-control/boot-r11-emmc-qr.img`
   - 8,638,464 bytes
-  - sha256 `e7dc4be9060ac27243632f7fff31a90cd1b28485f586389925ef32858c3704e6`
+  - sha256 `PLACEHOLDER`
   - `R11EmmcTestDxe` is in `DXE.inc`, before the XNU-driving modules
-  - Enables 3.3 V, 400 kHz host clock, 1-bit mode, reads/enables GCC gates
-  - CMD0 succeeds; CMD1 is limited to 3 tries with short hardware timeouts
+  - Displays the result as a QR code before the 20 s countdown/reset
 - Not yet tested on hardware
 - The test driver was removed from the normal UEFI build after this image was
   produced, so ordinary builds do not halt in `CpuDeadLoop()`
 - Next step: boot the test image and photograph the `[R11EMMC]` lines
 - Cold-start test (CMD0/CMD1/CMD2/CMD3/CMD7/CMD16) comes only after the
   read-only probe is stable
+
+## Automation log
+
+| round | time | status | conclusion |
+|---|---|---|---|
+| 1 | 2026-11-11 21:24:07 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |
+| 2 | 2026-11-11 21:26:09 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |
+| 3 | 2026-11-11 21:28:11 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |
+| 1 | 2026-11-11 21:39:59 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |
+| 2 | 2026-11-11 21:42:53 | ok | CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=? |

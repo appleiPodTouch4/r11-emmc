@@ -1,0 +1,6 @@
+round 2
+Sending 'boot.img' (8436 KB)                       OKAY [  0.180s]
+Booting                                            OKAY [  0.000s]
+Finished. Total time: 0.200s
+
+CONCLUSION CMD0=unknown CMD1_timeouts=0 never_ready=no ps=? int=?

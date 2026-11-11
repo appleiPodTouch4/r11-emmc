@@ -19,6 +19,9 @@
 #include <Library/UefiDriverEntryPoint.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/QrEncoderLib.h>
+#include <Protocol/GraphicsOutput.h>
 
 #define SDCC_BASE             0x0C0C4000u
 #define GCC_BASE              0x00100000u
@@ -119,7 +122,7 @@ SdCommand (
 
   if (WaitBits (SDHCI_PRESENT_STATE,
                SDHCI_PS_CMD_INHIBIT | SDHCI_PS_DAT_INHIBIT, 0,
-               100000) != EFI_SUCCESS)
+               5000) != EFI_SUCCESS)
   {
     return EFI_TIMEOUT;
   }
@@ -144,7 +147,7 @@ SdCommand (
 
   if (WaitBits (SDHCI_INT_STATUS,
                SDHCI_INT_CMD_COMPLETE | SDHCI_INT_ERROR,
-               SDHCI_INT_CMD_COMPLETE, 100000) != EFI_SUCCESS)
+               SDHCI_INT_CMD_COMPLETE, 5000) != EFI_SUCCESS)
   {
     return EFI_TIMEOUT;
   }
@@ -164,7 +167,7 @@ SdCommand (
     Words = Blocks * 128u; /* 512 bytes per block */
     for (i = 0; i < Words; i++) {
       if (WaitBits (SDHCI_PRESENT_STATE, SDHCI_PS_BUF_READ_EN,
-                   SDHCI_PS_BUF_READ_EN, 200000) != EFI_SUCCESS)
+                   SDHCI_PS_BUF_READ_EN, 20000) != EFI_SUCCESS)
       {
         return EFI_TIMEOUT;
       }
@@ -172,7 +175,7 @@ SdCommand (
     }
 
     if (WaitBits (SDHCI_INT_STATUS, SDHCI_INT_TX_COMPLETE,
-                 SDHCI_INT_TX_COMPLETE, 300000) != EFI_SUCCESS)
+                 SDHCI_INT_TX_COMPLETE, 30000) != EFI_SUCCESS)
     {
       return EFI_TIMEOUT;
     }
@@ -193,6 +196,8 @@ Stage (
   gBS->Stall (1500000);
 }
 
+STATIC CHAR8  mQrPayload[160];
+
 STATIC
 VOID
 R11Finish (
@@ -201,7 +206,34 @@ R11Finish (
 {
   UINTN  i;
 
-  for (i = 15; i > 0; i--) {
+  {
+    EFI_GRAPHICS_OUTPUT_PROTOCOL  *Gop = NULL;
+    EFI_GRAPHICS_OUTPUT_BLT_PIXEL *Bitmap = NULL;
+    UINTN                         Size;
+    UINTN                         X, Y;
+
+    Print (L"\r\n[R11EMMC] QR: %a\r\n", mQrPayload);
+    if (!EFI_ERROR (gBS->LocateProtocol (&gEfiGraphicsOutputProtocolGuid,
+                                          NULL, (VOID **)&Gop)))
+    {
+      Size = Gop->Mode->Info->HorizontalResolution;
+      if (Gop->Mode->Info->VerticalResolution < Size) {
+        Size = Gop->Mode->Info->VerticalResolution;
+      }
+      Size = Size * 2 / 3;
+      if (!EFI_ERROR (QrEncodeData (QrAutoVersion, QrECLevel_L, QrByteMode, 0,
+                                    (UINT8 *)mQrPayload,
+                                    AsciiStrLen (mQrPayload), Size, &Bitmap)))
+      {
+        X = (Gop->Mode->Info->HorizontalResolution - Size) / 2;
+        Y = (Gop->Mode->Info->VerticalResolution - Size) / 2;
+        Gop->Blt (Gop, Bitmap, EfiBltBufferToVideo, 0, 0, X, Y, Size, Size, 0);
+        FreePool (Bitmap);
+      }
+    }
+  }
+
+  for (i = 20; i > 0; i--) {
     Print (L"\r[R11EMMC] reboot in %02u s...", (UINT32)i);
     gBS->Stall (1000000);
   }
@@ -237,6 +269,9 @@ R11EmmcTestEntry (
   (VOID)ImageHandle;
   (VOID)SystemTable;
 
+  AsciiSPrint (mQrPayload, sizeof (mQrPayload),
+               "R11|stage=start|ps=unknown|int=unknown");
+
   /* Never let a stuck CMD1/CMD13 loop keep the phone in UEFI forever. */
   gBS->SetWatchdogTimer (45, 0, 0, NULL);
 
@@ -264,7 +299,7 @@ R11EmmcTestEntry (
   MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0x0000);
   gBS->Stall (1000);
   MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0x0001);
-  if (WaitBits16 (SDHCI_CLOCK_CONTROL, 0x0002, 0x0002, 100000) != EFI_SUCCESS) {
+  if (WaitBits16 (SDHCI_CLOCK_CONTROL, 0x0002, 0x0002, 5000) != EFI_SUCCESS) {
     Print (L"[R11EMMC] clock never stable\r\n");
     R11Finish ();
   }
@@ -296,18 +331,16 @@ R11EmmcTestEntry (
   gBS->Stall (10000);
 
   Stage (4, 7, L"CMD1 OCR wait");
-  for (i = 0; i < 30; i++) {
+  for (i = 0; i < 3; i++) {
     ZeroMem (Resp, sizeof (Resp));
     Status = SdCommand (1, 0x40FF8080u, SDHCI_CMD_R48, Resp, NULL, 0);
     if ((Status == EFI_SUCCESS) && ((Resp[0] & 0x80000000u) != 0)) {
       break;
     }
-    if ((i % 5) == 0) {
-      Print (L"[R11EMMC] cmd1 try=%u err=%r ocr=%08x ps=%08x int=%08x\r\n",
-             (UINT32)i, Status, Resp[0],
-             MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
-             MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS));
-    }
+    Print (L"[R11EMMC] cmd1 try=%u err=%r ocr=%08x ps=%08x int=%08x\r\n",
+           (UINT32)i, Status, Resp[0],
+           MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
+           MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS));
     gBS->Stall (10000);
   }
   Print (L"[R11EMMC] cmd1 err=%r ocr=%08x ps=%08x int=%08x\r\n",
@@ -315,6 +348,10 @@ R11EmmcTestEntry (
          MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
          MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS));
   if ((Status != EFI_SUCCESS) || ((Resp[0] & 0x80000000u) == 0)) {
+    AsciiSPrint (mQrPayload, sizeof (mQrPayload),
+                 "R11|stage=cmd1|ps=%08x|int=%08x|c0=1|c1=3|never=1",
+                 MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
+                 MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS));
     Print (L"[R11EMMC] card never ready\r\n");
     R11Finish ();
   }
@@ -374,6 +411,10 @@ R11EmmcTestEntry (
     D1 = (D1 << 8) | Block[i];
   }
 
+  AsciiSPrint (mQrPayload, sizeof (mQrPayload),
+               "R11|stage=done|ps=%08x|int=%08x|c0=1|c1=0|never=0|d1=%016lx",
+               MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
+               MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS), D1);
   Print (L"[R11EMMC] cmd17 err=%r d1=%016lx st=%08x\r\n",
          Status, D1, Resp[0]);
   Print (L"[R11EMMC] bytes: %02x %02x %02x %02x %02x %02x %02x %02x\r\n",

@@ -17,12 +17,15 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  MsGraphicsPkg/MsGraphicsPkg.dec
 
 [LibraryClasses]
   BaseLib
   BaseMemoryLib
   IoLib
+  MemoryAllocationLib
   PrintLib
+  QrEncoderLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
   UefiLib
