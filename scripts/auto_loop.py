@@ -47,16 +47,17 @@ def ensure_ocr():
 def ocr_text(path):
     try:
         p = subprocess.run([str(OCR), str(path)], capture_output=True,
-                           text=True, timeout=20)
+                           text=True, timeout=6)
         return p.stdout
     except Exception:
         return ""
 
 def conclusion(frames):
     text = ""
-    # The test screen is in the middle of the capture; the last frames are the
-    # Fastboot screen again.  Scan the whole round, not just the tail.
-    for p in sorted(frames, key=lambda x: x.name):
+    # The test screen is in the middle of the capture; Fastboot is at the end.
+    # Sample frames so OCR cannot spend minutes on 50+ images.
+    ordered = sorted(frames, key=lambda x: x.name)
+    for p in ordered[::4]:
         t = ocr_text(p)
         low = t.lower()
         if "time out" in low or "never ready" in low or "r11emmc" in low:
@@ -149,6 +150,7 @@ def main():
         status(rnd, "capturing screen")
         subprocess.run([sys.executable, str(ROOT / "scripts/camera_capture.py"),
                         str(d / "frames"), "55", "1"], check=False)
+        status(rnd, "analyzing screen")
         ensure_ocr()
         c = conclusion(sorted((d / "frames").glob("*.jpg")))
         with log.open("a") as f:
