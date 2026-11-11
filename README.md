@@ -114,6 +114,24 @@ Do **not** flash. The driver halts, so XNU is never entered.
 | pwrcycle | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 | corevendor | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 
+## 2026-11-11 suite conclusion
+
+All five host-side variants returned the same QR:
+
+```text
+R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1
+```
+
+- CMD0 completes.
+- Every CMD1 attempt times out.
+- The CMD inhibit is cleared correctly (`ps=...F0`, `int=0`), so the host is no longer stuck.
+- CMD0 argument, 1.8 V, power cycle and CORE_VENDOR_SPEC do not change the result.
+- The card itself never answers CMD1.
+
+Conclusion: host-side SDHCI variants are exhausted. The remaining blocker is the
+card's power/reset/CMD-line state (VCC/VCCQ, PMIC LDO or reset GPIO), not PIO,
+clock or CMD-inhibit handling.
+
 ## 2026-11-11 eMMC variant results
 
 | variant | result |
@@ -124,3 +142,8 @@ Do **not** flash. The driver halts, so XNU is never entered.
 | pwrcycle | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 | corevendor | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 | swreset | HUNG before QR; SWRST_ALL wait never completed |
+| 1 | cmdreset | 2026-11-11 22:39:49 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| 2 | cmd0zero | 2026-11-11 22:41:23 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| 3 | 1v8 | 2026-11-11 22:42:47 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| 4 | pwrcycle | 2026-11-11 22:44:22 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| 5 | corevendor | 2026-11-11 22:45:46 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
