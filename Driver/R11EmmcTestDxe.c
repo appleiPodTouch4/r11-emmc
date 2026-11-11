@@ -290,7 +290,9 @@ R11EmmcTestEntry (
 
   Stage (3, 7, L"CMD0 reset (0xF0F0F0F0)");
   Status = SdCommand (0, 0xF0F0F0F0u, 0, NULL, NULL, 0);
-  Print (L"[R11EMMC] cmd0 err=%r\r\n", Status);
+  Print (L"[R11EMMC] cmd0 err=%r ps=%08x int=%08x\r\n",
+         Status, MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
+         MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS));
   gBS->Stall (10000);
 
   Stage (4, 7, L"CMD1 OCR wait");
@@ -301,12 +303,17 @@ R11EmmcTestEntry (
       break;
     }
     if ((i % 5) == 0) {
-      Print (L"[R11EMMC] cmd1 try=%u err=%r ocr=%08x\r\n",
-             (UINT32)i, Status, Resp[0]);
+      Print (L"[R11EMMC] cmd1 try=%u err=%r ocr=%08x ps=%08x int=%08x\r\n",
+             (UINT32)i, Status, Resp[0],
+             MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
+             MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS));
     }
     gBS->Stall (10000);
   }
-  Print (L"[R11EMMC] cmd1 err=%r ocr=%08x\r\n", Status, Resp[0]);
+  Print (L"[R11EMMC] cmd1 err=%r ocr=%08x ps=%08x int=%08x\r\n",
+         Status, Resp[0],
+         MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE),
+         MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS));
   if ((Status != EFI_SUCCESS) || ((Resp[0] & 0x80000000u) == 0)) {
     Print (L"[R11EMMC] card never ready\r\n");
     R11Finish ();
