@@ -51,6 +51,8 @@
 #define SDHCI_PS_BUF_READ_EN    0x00000800u
 
 #define SDHCI_CMD_R48           0x00000002u
+#define SDHCI_CMD_R136          0x00000001u
+#define SDHCI_CMD_R48BUSY       0x00000003u
 #define SDHCI_CMD_CRC           0x00000008u
 #define SDHCI_CMD_INDEX         0x00000010u
 #define SDHCI_CMD_DATA          0x00000020u
@@ -264,28 +266,72 @@ R11EmmcTestEntry (
   Clock = MmioRead16 (SDCC_BASE + SDHCI_CLOCK_CONTROL);
   Print (L"[R11EMMC] clk after=%04x\r\n", Clock);
 
-  Stage (3, 5, L"CMD13 RCA 1..8");
-  Rca = 0;
-  for (i = 1; i <= 8; i++) {
+  Stage (3, 7, L"CMD0 reset (0xF0F0F0F0)");
+  Status = SdCommand (0, 0xF0F0F0F0u, 0, NULL, NULL, 0);
+  Print (L"[R11EMMC] cmd0 err=%r\r\n", Status);
+  gBS->Stall (10000);
+
+  Stage (4, 7, L"CMD1 OCR wait");
+  for (i = 0; i < 200; i++) {
     ZeroMem (Resp, sizeof (Resp));
-    Status = SdCommand (13, (UINT32)i << 16,
-                        SDHCI_CMD_R48 | SDHCI_CMD_CRC | SDHCI_CMD_INDEX,
-                        Resp, NULL, 0);
-    if (Status == EFI_SUCCESS) {
-      Rca = (UINT32)i;
-      Print (L"[R11EMMC] cmd13 rca=%u st=%08x\r\n", (UINT32)i, Resp[0]);
+    Status = SdCommand (1, 0x40FF8080u, SDHCI_CMD_R48, Resp, NULL, 0);
+    if ((Status == EFI_SUCCESS) && ((Resp[0] & 0x80000000u) != 0)) {
       break;
     }
-    Print (L"[R11EMMC] cmd13 rca=%u err=%r\r\n", (UINT32)i, Status);
-    gBS->Stall (500000);
+    gBS->Stall (10000);
   }
-
-  if (Rca == 0) {
-    Print (L"[R11EMMC] no RCA, stop\r\n");
+  Print (L"[R11EMMC] cmd1 err=%r ocr=%08x\r\n", Status, Resp[0]);
+  if ((Status != EFI_SUCCESS) || ((Resp[0] & 0x80000000u) == 0)) {
+    Print (L"[R11EMMC] card never ready\r\n");
     R11Finish ();
   }
 
-  Stage (4, 5, L"CMD17 LBA1 with PIO");
+  Stage (5, 7, L"CMD2 CID / CMD3 RCA / CMD7 select");
+  ZeroMem (Resp, sizeof (Resp));
+  Status = SdCommand (2, 0, SDHCI_CMD_R136 | SDHCI_CMD_CRC, Resp, NULL, 0);
+  Print (L"[R11EMMC] cmd2 err=%r cid0=%08x\r\n", Status, Resp[0]);
+  if (Status != EFI_SUCCESS) {
+    R11Finish ();
+  }
+
+  ZeroMem (Resp, sizeof (Resp));
+  Status = SdCommand (3, 0, SDHCI_CMD_R48 | SDHCI_CMD_CRC | SDHCI_CMD_INDEX,
+                      Resp, NULL, 0);
+  Rca = Resp[0] >> 16;
+  Print (L"[R11EMMC] cmd3 err=%r rca=%u st=%08x\r\n", Status, Rca, Resp[0]);
+  if ((Status != EFI_SUCCESS) || (Rca == 0)) {
+    R11Finish ();
+  }
+
+  ZeroMem (Resp, sizeof (Resp));
+  Status = SdCommand (7, Rca << 16,
+                      SDHCI_CMD_R48BUSY | SDHCI_CMD_CRC | SDHCI_CMD_INDEX,
+                      Resp, NULL, 0);
+  Print (L"[R11EMMC] cmd7 err=%r st=%08x\r\n", Status, Resp[0]);
+  if (Status != EFI_SUCCESS) {
+    R11Finish ();
+  }
+
+  Stage (6, 7, L"CMD13 status / CMD16 blocklen 512");
+  ZeroMem (Resp, sizeof (Resp));
+  Status = SdCommand (13, Rca << 16,
+                      SDHCI_CMD_R48 | SDHCI_CMD_CRC | SDHCI_CMD_INDEX,
+                      Resp, NULL, 0);
+  Print (L"[R11EMMC] cmd13 err=%r st=%08x\r\n", Status, Resp[0]);
+  if (Status != EFI_SUCCESS) {
+    R11Finish ();
+  }
+
+  ZeroMem (Resp, sizeof (Resp));
+  Status = SdCommand (16, 512,
+                      SDHCI_CMD_R48 | SDHCI_CMD_CRC | SDHCI_CMD_INDEX,
+                      Resp, NULL, 0);
+  Print (L"[R11EMMC] cmd16 err=%r st=%08x\r\n", Status, Resp[0]);
+  if (Status != EFI_SUCCESS) {
+    R11Finish ();
+  }
+
+  Stage (7, 7, L"CMD17 LBA1 with PIO");
   ZeroMem (Block, sizeof (Block));
   Status = SdCommand (17, 1, SDHCI_CMD_R48 | SDHCI_CMD_CRC |
                       SDHCI_CMD_INDEX | SDHCI_CMD_DATA,
@@ -295,7 +341,6 @@ R11EmmcTestEntry (
     D1 = (D1 << 8) | Block[i];
   }
 
-  Stage (5, 5, L"result");
   Print (L"[R11EMMC] cmd17 err=%r d1=%016lx st=%08x\r\n",
          Status, D1, Resp[0]);
   Print (L"[R11EMMC] bytes: %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
