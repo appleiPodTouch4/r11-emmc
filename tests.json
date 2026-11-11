@@ -3,5 +3,25 @@
     "name": "cmdreset",
     "image": "boot-control/boot-r11-emmc-cmdreset.img",
     "note": "CMD1 timeout -> SWRST_CMD -> retry"
+  },
+  {
+    "name": "cmd0zero",
+    "image": "boot-control/boot-r11-emmc-cmd0zero.img",
+    "note": "CMD0 argument 0"
+  },
+  {
+    "name": "1v8",
+    "image": "boot-control/boot-r11-emmc-1v8.img",
+    "note": "POWER_CONTROL 1.8 V"
+  },
+  {
+    "name": "pwrcycle",
+    "image": "boot-control/boot-r11-emmc-pwrcycle.img",
+    "note": "power off/on before CMD1"
+  },
+  {
+    "name": "corevendor",
+    "image": "boot-control/boot-r11-emmc-corevendor.img",
+    "note": "keep bootloader CORE_VENDOR_SPEC"
   }
 ]
