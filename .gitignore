@@ -1,0 +1,5 @@
+build/
+*.efi
+*.fd
+*.img
+.DS_Store
