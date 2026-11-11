@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT.parent
-IMAGE = WORK / "boot-control/boot-r11-emmc-test11.img"
+IMAGE = WORK / "boot-control/boot-r11-emmc-qr3.img"
 RUNS = ROOT / "runs"
 CAM = "http://192.168.31.196:8080/"
 FASTBOOT = "/usr/local/bin/fastboot"
@@ -52,7 +52,35 @@ def ocr_text(path, full=False):
     except Exception:
         return ""
 
+QRDEC = ROOT / "scripts/qrdecode-bin"
+
+def ensure_qrdec():
+    if QRDEC.exists():
+        return
+    cache = Path("/tmp/r11-ocr-module-cache")
+    cache.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["swiftc", "-module-cache-path", str(cache), "-O",
+                    str(ROOT / "scripts/qrdecode.swift"), "-o", str(QRDEC)],
+                   check=True)
+
+def qr_payload(frames):
+    ensure_qrdec()
+    ordered = sorted(frames, key=lambda x: x.name)
+    for p in ordered[::3]:
+        try:
+            r = subprocess.run([str(QRDEC), str(p)], capture_output=True,
+                               text=True, timeout=6)
+            for line in r.stdout.splitlines():
+                if line.startswith("R11|"):
+                    return line.strip()
+        except Exception:
+            pass
+    return ""
+
 def conclusion(frames):
+    payload = qr_payload(frames)
+    if payload:
+        return "QR " + payload
     text = ""
     ordered = sorted(frames, key=lambda x: x.name)
     # The useful test screen is around 15-35 s.  Do not OCR every frame.
@@ -156,7 +184,7 @@ def main():
             f.write(p.stdout + p.stderr + "\n")
         status(rnd, "capturing screen")
         subprocess.run([sys.executable, str(ROOT / "scripts/camera_capture.py"),
-                        str(d / "frames"), "55", "1"], check=False)
+                        str(d / "frames"), "65", "1"], check=False)
         status(rnd, "analyzing screen")
         ensure_ocr()
         c = conclusion(sorted((d / "frames").glob("*.jpg")))

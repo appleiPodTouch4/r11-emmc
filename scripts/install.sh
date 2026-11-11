@@ -39,11 +39,11 @@ if "R11EmmcTestDxe/R11EmmcTestDxe.inf" not in s:
 
 s = dxe.read_text()
 if "R11EmmcTestDxe/R11EmmcTestDxe.inf" not in s:
-    marker = "  INF EmbeddedPkg/MetronomeDxe/MetronomeDxe.inf\n"
+    marker = "  INF SiliciumPkg/Drivers/SimpleFbDxe/SimpleFbDxe.inf\n"
     if marker in s:
         s = s.replace(marker, dxe_line + marker, 1)
     else:
-        s = dxe_line + s
+        s += dxe_line
     dxe.write_text(s)
 print("integrated R11EmmcTestDxe")
 PY
