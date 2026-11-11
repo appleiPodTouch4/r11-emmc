@@ -3,3 +3,5 @@ build/
 *.fd
 *.img
 .DS_Store
+scripts/ocr-bin
+scripts/__pycache__/

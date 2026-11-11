@@ -79,10 +79,10 @@ Do **not** flash. The driver halts, so XNU is never entered.
 ## Status
 
 - Driver source and integration script: compiled into a UEFI FD
-- UEFI FD: `PLACEHOLDER`
+- UEFI FD: `b1aebe9aa0efe74c011cfbcd3358641d6e0ef6178a24bb34fa62cbef807b04ec`
 - Test boot image: `boot-control/boot-r11-emmc-qr.img`
   - 8,638,464 bytes
-  - sha256 `PLACEHOLDER`
+  - sha256 `c716a5e0d0a604498db71af25cbf704c7af76d6b89ff9dcd8a88a5a74047c4ec`
   - `R11EmmcTestDxe` is in `DXE.inc`, before the XNU-driving modules
   - Displays the result as a QR code before the 20 s countdown/reset
 - Not yet tested on hardware
