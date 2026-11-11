@@ -38,6 +38,7 @@
 #define SDHCI_HOST_CONTROL2   0x03Eu
 #define SDHCI_CAPABILITIES    0x040u
 #define SDHCI_CORE_VENDOR     0x20Cu
+#define SDHCI_TIMEOUT_CONTROL 0x02Eu
 
 #define SDHCI_INT_CMD_COMPLETE  0x0001u
 #define SDHCI_INT_TX_COMPLETE   0x0002u
@@ -56,6 +57,26 @@
 #define SDHCI_TM_READ           0x00000010u
 #define SDHCI_TM_BLKCNT_EN      0x00000002u
 #define SDHCI_TM_MULTI          0x00000020u
+
+STATIC
+EFI_STATUS
+WaitBits16 (
+  IN UINT32  Offset,
+  IN UINT16  Mask,
+  IN UINT16  Value,
+  IN UINTN   Microseconds
+  )
+{
+  UINTN  i;
+
+  for (i = 0; i < Microseconds; i++) {
+    if ((MmioRead16 (SDCC_BASE + Offset) & Mask) == Value) {
+      return EFI_SUCCESS;
+    }
+    gBS->Stall (1);
+  }
+  return EFI_TIMEOUT;
+}
 
 STATIC
 EFI_STATUS
@@ -168,6 +189,8 @@ R11EmmcTestEntry (
   UINT32   Vendor;
   UINT16   Hc2;
   UINT8    Hc1;
+  UINT8    Power;
+  UINT16   Clock;
   UINT32   Resp[4];
   UINT32   Rca;
   UINT64   D1;
@@ -183,10 +206,31 @@ R11EmmcTestEntry (
   Hc2    = MmioRead16 (SDCC_BASE + SDHCI_HOST_CONTROL2);
   Caps   = MmioRead32 (SDCC_BASE + SDHCI_CAPABILITIES);
   Vendor = MmioRead32 (SDCC_BASE + SDHCI_CORE_VENDOR);
+  Power  = MmioRead8  (SDCC_BASE + SDHCI_POWER_CONTROL);
+  Clock  = MmioRead16 (SDCC_BASE + SDHCI_CLOCK_CONTROL);
 
   Print (L"\r\n[R11EMMC] fast probe, no XNU\r\n");
   Print (L"[R11EMMC] ps=%08x hc1=%02x hc2=%04x caps=%08x vs=%08x\r\n",
          Ps, Hc1, Hc2, Caps, Vendor);
+  Print (L"[R11EMMC] pwr=%02x clk=%04x\r\n", Power, Clock);
+
+  /* The bootloader can leave the SD clock gated after handoff.  Enable 3.3 V,
+   * a 400 kHz card clock (divider 0xFA for a 200 MHz base), and 1-bit mode
+   * before trying CMD13.  This writes only the host, not the card. */
+  MmioWrite8  (SDCC_BASE + SDHCI_POWER_CONTROL, 0x0F);
+  MmioWrite8  (SDCC_BASE + SDHCI_HOST_CONTROL, 0x00);
+  MmioWrite8  (SDCC_BASE + SDHCI_TIMEOUT_CONTROL, 0x0E);
+  MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0x0000);
+  gBS->Stall (1000);
+  MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0x0001);
+  if (WaitBits16 (SDHCI_CLOCK_CONTROL, 0x0002, 0x0002, 100000) != EFI_SUCCESS) {
+    Print (L"[R11EMMC] clock never stable\r\n");
+    CpuDeadLoop ();
+  }
+  MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0xFA05);
+  MmioWrite32 (SDCC_BASE + SDHCI_CORE_VENDOR, 0xA9Cu);
+  Clock = MmioRead16 (SDCC_BASE + SDHCI_CLOCK_CONTROL);
+  Print (L"[R11EMMC] clk after=%04x\r\n", Clock);
 
   Rca = 0;
   for (i = 1; i <= 8; i++) {
