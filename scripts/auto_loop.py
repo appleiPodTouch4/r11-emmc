@@ -125,7 +125,10 @@ def grab_one_frame(path, timeout=8):
     return False
 
 def wait_for_fastboot_text(timeout=FASTBOOT_TIMEOUT):
-    """Wait for the literal Fastboot screen, not just a USB device."""
+    """Wait for the literal Fastboot screen, with fastboot devices as fallback."""
+    p = subprocess.run([FASTBOOT, "devices"], capture_output=True, text=True)
+    if p.stdout.strip():
+        return True
     ensure_ocr()
     end = time.time() + timeout
     tmp = ROOT / "runs" / "fastboot-check.jpg"
