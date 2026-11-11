@@ -64,7 +64,7 @@ After the test, remove it from the normal build:
 Then boot manually:
 
 ```sh
-fastboot boot boot-control/boot-r11-emmc-test7.img
+fastboot boot boot-control/boot-r11-emmc-test8.img
 ```
 
 Do **not** flash. The driver halts, so XNU is never entered.
@@ -79,13 +79,13 @@ Do **not** flash. The driver halts, so XNU is never entered.
 ## Status
 
 - Driver source and integration script: compiled into a UEFI FD
-- UEFI FD: `09519e6ea1e8d3d84c3dca1f5c795dc301c483b477fbaa812be4b737988e8c23`
-- Test boot image: `boot-control/boot-r11-emmc-test7.img`
+- UEFI FD: `66719e0734a1d78504756525447ba9f86c60ecd5d2cd463a4814971fddc5aa1a`
+- Test boot image: `boot-control/boot-r11-emmc-test8.img`
   - 8,638,464 bytes
-  - sha256 `656a7c278f14fdd0484f97d6b00b9c05c20bc5986154d84e99597c7082d33842`
+  - sha256 `0bfb4cd4bafc2d743ef21aa3b3dc3f8bdf1a67132ec3f0f0826ca56040717bf8`
   - `R11EmmcTestDxe` is in `DXE.inc`, before the XNU-driving modules
   - Enables 3.3 V, 400 kHz host clock, 1-bit mode, then does CMD0/CMD1/CMD2/CMD3/CMD7/CMD13/CMD16/CMD17
-  - Prints numbered steps 1/7..7/7, then counts down 15 s and cold-resets
+  - CMD1 is limited to 30 tries; every 5th try is printed; a 45 s UEFI watchdog prevents a hang
 - Not yet tested on hardware
 - The test driver was removed from the normal UEFI build after this image was
   produced, so ordinary builds do not halt in `CpuDeadLoop()`

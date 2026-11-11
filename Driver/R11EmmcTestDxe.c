@@ -233,6 +233,9 @@ R11EmmcTestEntry (
   (VOID)ImageHandle;
   (VOID)SystemTable;
 
+  /* Never let a stuck CMD1/CMD13 loop keep the phone in UEFI forever. */
+  gBS->SetWatchdogTimer (45, 0, 0, NULL);
+
   Ps     = MmioRead32 (SDCC_BASE + SDHCI_PRESENT_STATE);
   Hc1    = MmioRead8  (SDCC_BASE + SDHCI_HOST_CONTROL);
   Hc2    = MmioRead16 (SDCC_BASE + SDHCI_HOST_CONTROL2);
@@ -272,11 +275,15 @@ R11EmmcTestEntry (
   gBS->Stall (10000);
 
   Stage (4, 7, L"CMD1 OCR wait");
-  for (i = 0; i < 200; i++) {
+  for (i = 0; i < 30; i++) {
     ZeroMem (Resp, sizeof (Resp));
     Status = SdCommand (1, 0x40FF8080u, SDHCI_CMD_R48, Resp, NULL, 0);
     if ((Status == EFI_SUCCESS) && ((Resp[0] & 0x80000000u) != 0)) {
       break;
+    }
+    if ((i % 5) == 0) {
+      Print (L"[R11EMMC] cmd1 try=%u err=%r ocr=%08x\r\n",
+             (UINT32)i, Status, Resp[0]);
     }
     gBS->Stall (10000);
   }
