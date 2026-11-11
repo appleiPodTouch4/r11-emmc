@@ -55,6 +55,12 @@ cd "$UNIXNU_ROOT"
 ./build-r11.sh bootimg
 ```
 
+After the test, remove it from the normal build:
+
+```sh
+./scripts/uninstall.sh "$UNIXNU_ROOT"
+```
+
 Then boot manually:
 
 ```sh
