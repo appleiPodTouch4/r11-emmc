@@ -64,7 +64,7 @@ After the test, remove it from the normal build:
 Then boot manually:
 
 ```sh
-fastboot boot boot-control/boot-r11-emmc-test2.img
+fastboot boot boot-control/boot-r11-emmc-test3.img
 ```
 
 Do **not** flash. The driver halts, so XNU is never entered.
@@ -79,11 +79,12 @@ Do **not** flash. The driver halts, so XNU is never entered.
 ## Status
 
 - Driver source and integration script: compiled into a UEFI FD
-- UEFI FD: `104cf85faf9dfbf0f42f5ef2e7dde49324771640e2406a57061814f25bc34548`
-- Test boot image: `boot-control/boot-r11-emmc-test2.img`
+- UEFI FD: `0f2fcdf2ab7f744caa99901292d19cf249d46f702bb4a356c06fbacb71c4771a`
+- Test boot image: `boot-control/boot-r11-emmc-test3.img`
   - 8,638,464 bytes
-  - sha256 `b6d2b1663e87c90f2c07d1276c170c609d7753f98353a6d6aa555c0586ff0976`
+  - sha256 `b360c25cb92ce9f3f6c8db8f006ba40bf30ccc92aa4b4604221563bf5f3bc2f6`
   - `R11EmmcTestDxe` is in `DXE.inc`, before the XNU-driving modules
+  - Fixes the `MmioWrite32` at the 16-bit SDHCI_COMMAND register
 - Not yet tested on hardware
 - The test driver was removed from the normal UEFI build after this image was
   produced, so ordinary builds do not halt in `CpuDeadLoop()`

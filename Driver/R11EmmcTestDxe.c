@@ -112,9 +112,9 @@ SdCommand (
       );
   }
 
-  MmioWrite32 (
+  MmioWrite16 (
     SDCC_BASE + SDHCI_COMMAND,
-    ((UINT32)Index << 8) | Flags
+    (UINT16)(((UINT32)Index << 8) | Flags)
     );
 
   if (WaitBits (SDHCI_INT_STATUS,
