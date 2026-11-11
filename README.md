@@ -64,7 +64,7 @@ After the test, remove it from the normal build:
 Then boot manually:
 
 ```sh
-fastboot boot boot-control/boot-r11-emmc-test8.img
+fastboot boot boot-control/boot-r11-emmc-test9.img
 ```
 
 Do **not** flash. The driver halts, so XNU is never entered.
@@ -79,13 +79,13 @@ Do **not** flash. The driver halts, so XNU is never entered.
 ## Status
 
 - Driver source and integration script: compiled into a UEFI FD
-- UEFI FD: `66719e0734a1d78504756525447ba9f86c60ecd5d2cd463a4814971fddc5aa1a`
-- Test boot image: `boot-control/boot-r11-emmc-test8.img`
+- UEFI FD: `9f74b174c6f3c541f32bd1ac2199a7f25da5f74f839195e8c57fe2c28e5b452c`
+- Test boot image: `boot-control/boot-r11-emmc-test9.img`
   - 8,638,464 bytes
-  - sha256 `0bfb4cd4bafc2d743ef21aa3b3dc3f8bdf1a67132ec3f0f0826ca56040717bf8`
+  - sha256 `22cb0dc479b9e09b7397e0fddac8c9df2e87090660f69130ba779048bbdace19`
   - `R11EmmcTestDxe` is in `DXE.inc`, before the XNU-driving modules
-  - Enables 3.3 V, 400 kHz host clock, 1-bit mode, then does CMD0/CMD1/CMD2/CMD3/CMD7/CMD13/CMD16/CMD17
-  - CMD1 is limited to 30 tries; every 5th try is printed; a 45 s UEFI watchdog prevents a hang
+  - Enables 3.3 V, 400 kHz host clock, 1-bit mode, reads/enables GCC gates
+  - CMD0 succeeds; CMD1 is still all `Time out`; 30 tries and a 45 s watchdog bound the run
 - Not yet tested on hardware
 - The test driver was removed from the normal UEFI build after this image was
   produced, so ordinary builds do not halt in `CpuDeadLoop()`

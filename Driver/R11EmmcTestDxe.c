@@ -21,6 +21,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 
 #define SDCC_BASE             0x0C0C4000u
+#define GCC_BASE              0x00100000u
 
 #define SDHCI_BLOCK_SIZE      0x004u
 #define SDHCI_BLOCK_COUNT     0x006u
@@ -218,6 +219,9 @@ R11EmmcTestEntry (
 {
   UINT32   Ps;
   UINT32   Caps;
+  UINT32   GccApps;
+  UINT32   GccAhb;
+  UINT32   GccBcr;
   UINT32   Vendor;
   UINT16   Hc2;
   UINT8    Hc1;
@@ -267,7 +271,22 @@ R11EmmcTestEntry (
   MmioWrite16 (SDCC_BASE + SDHCI_CLOCK_CONTROL, 0xFA05);
   MmioWrite32 (SDCC_BASE + SDHCI_CORE_VENDOR, 0xA9Cu);
   Clock = MmioRead16 (SDCC_BASE + SDHCI_CLOCK_CONTROL);
-  Print (L"[R11EMMC] clk after=%04x\r\n", Clock);
+  Print (L"[R11EMMC] clk after=%04x pwr after=%02x\r\n",
+         Clock, MmioRead8 (SDCC_BASE + SDHCI_POWER_CONTROL));
+
+  GccBcr  = MmioRead32 (GCC_BASE + 0x16000);
+  GccApps = MmioRead32 (GCC_BASE + 0x16004);
+  GccAhb  = MmioRead32 (GCC_BASE + 0x16008);
+  Print (L"[R11EMMC] gcc bcr=%08x apps=%08x ahb=%08x\r\n",
+         GccBcr, GccApps, GccAhb);
+  if (((GccApps & 1u) == 0) || ((GccAhb & 1u) == 0)) {
+    MmioWrite32 (GCC_BASE + 0x16008, GccAhb | 1u);
+    MmioWrite32 (GCC_BASE + 0x16004, GccApps | 1u);
+    gBS->Stall (1000);
+    Print (L"[R11EMMC] gcc after apps=%08x ahb=%08x\r\n",
+           MmioRead32 (GCC_BASE + 0x16004),
+           MmioRead32 (GCC_BASE + 0x16008));
+  }
 
   Stage (3, 7, L"CMD0 reset (0xF0F0F0F0)");
   Status = SdCommand (0, 0xF0F0F0F0u, 0, NULL, NULL, 0);
