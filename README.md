@@ -114,38 +114,51 @@ Do **not** flash. The driver halts, so XNU is never entered.
 | pwrcycle | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 | corevendor | 2026-11-11 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 
-## 2026-11-11 suite conclusion
+## eMMC results (2026-11-13)
 
-All five host-side variants returned the same QR:
+All variants below produced the same QR result:
 
 ```text
 R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1
 ```
 
+| variant | change | result |
+|---|---|---|
+| cmdreset | CMD1 timeout -> SWRST_CMD -> retry | CMD1 3x timeout, card never ready |
+| cmd0zero | CMD0 argument 0 | same |
+| 1v8 | POWER_CONTROL 1.8 V | same |
+| pwrcycle | power off/on before CMD1 | same |
+| corevendor | keep bootloader CORE_VENDOR_SPEC | same |
+| gccroot | program GCC sdcc1_apps root to 400 kHz | same |
+| vendorstack | vendor stock ClockDxe + SdccDxe | same |
+| swreset | SWRST_ALL | hung before QR; not viable |
+
+### Images
+
+| variant | image | sha256 |
+|---|---|---|
+| cmdreset | `boot-control/boot-r11-emmc-cmdreset.img` | `9f86ab43a4047a51679f5dc4f22e30264cff1746a33e8c03bca22b8f89e07f2b` |
+| cmd0zero | `boot-control/boot-r11-emmc-cmd0zero.img` | `eebd87aed489edd0ba1d79db15d745ae841ba9ef7ca8eb2509afe1b9c31bd295` |
+| 1v8 | `boot-control/boot-r11-emmc-1v8.img` | `cbaeed13c03dfa63561275f77b6943aae97391c5d8313793c9d0fdc6badf15ed` |
+| pwrcycle | `boot-control/boot-r11-emmc-pwrcycle.img` | `d121ca8974a04ed21a8868818adfc92f8efcf8a17ce0232802fc654af250b134` |
+| corevendor | `boot-control/boot-r11-emmc-corevendor.img` | `064902bc64934a384d140eb63c97ea7550fc910c797bd24025daacad757650ce` |
+| gccroot | `boot-control/boot-r11-emmc-gccroot.img` | `6263454caefa95095d4fb3256060c76530c7f2397a7be87257d7d4895fa96208` |
+| vendorstack | `boot-control/boot-r11-emmc-vendorstack.img` | `3e060e23876d99838ea485364da38b02c89ff985187fe3604dd3dcd08e64300b` |
+| QR baseline | `boot-control/boot-r11-emmc-qr3.img` | `029ee3d864906da162dee09d1936804d90673ef464fb4cd0f4621fbb259988a8` |
+
+### Conclusion
+
 - CMD0 completes.
-- Every CMD1 attempt times out.
-- The CMD inhibit is cleared correctly (`ps=...F0`, `int=0`), so the host is no longer stuck.
-- CMD0 argument, 1.8 V, power cycle and CORE_VENDOR_SPEC do not change the result.
-- The card itself never answers CMD1.
+- CMD1 never gets a response from the card.
+- CMD inhibit cleanup works: `ps=01F800F0`, `int=00000000`.
+- Host SDHCI clock, GCC gates/root, CMD0 argument, 1.8 V signalling, power register cycle,
+  CORE_VENDOR_SPEC and the vendor ClockDxe/SdccDxe stack do not change the result.
+- The remaining blocker is the card-side power/reset/CMD-line state: eMMC VCC/VCCQ
+  (PM660L L4 / PM660 L8), reset, or CMD-line pull-up.
 
-Conclusion: host-side SDHCI variants are exhausted. The remaining blocker is the
-card's power/reset/CMD-line state (VCC/VCCQ, PMIC LDO or reset GPIO), not PIO,
-clock or CMD-inhibit handling.
+### Current state
 
-## 2026-11-11 eMMC variant results
-
-| variant | result |
-|---|---|
-| cmdreset | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| cmd0zero | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| 1v8 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| pwrcycle | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| corevendor | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| swreset | HUNG before QR; SWRST_ALL wait never completed |
-| 1 | cmdreset | 2026-11-11 22:39:49 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| 2 | cmd0zero | 2026-11-11 22:41:23 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| 3 | 1v8 | 2026-11-11 22:42:47 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| 4 | pwrcycle | 2026-11-11 22:44:22 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| 5 | corevendor | 2026-11-11 22:45:46 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| gccroot | 2026-11-13 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
-| vendorstack | 2026-11-13 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+- Normal UEFI configuration restored; test driver removed from the normal build.
+- Device returns to Fastboot after each test.
+- Camera: `http://192.168.31.195:8080/`
+- No automatic loop is running after this suite completed.
