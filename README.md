@@ -131,6 +131,7 @@ R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1
 | corevendor | keep bootloader CORE_VENDOR_SPEC | same |
 | gccroot | program GCC sdcc1_apps root to 400 kHz | same |
 | vendorstack | vendor stock ClockDxe + SdccDxe | same |
+| cmd1arg | CMD1 OCR argument 0x00FF8080 | same |
 | swreset | SWRST_ALL | hung before QR; not viable |
 
 ### Images
@@ -144,6 +145,7 @@ R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1
 | corevendor | `boot-control/boot-r11-emmc-corevendor.img` | `064902bc64934a384d140eb63c97ea7550fc910c797bd24025daacad757650ce` |
 | gccroot | `boot-control/boot-r11-emmc-gccroot.img` | `6263454caefa95095d4fb3256060c76530c7f2397a7be87257d7d4895fa96208` |
 | vendorstack | `boot-control/boot-r11-emmc-vendorstack.img` | `3e060e23876d99838ea485364da38b02c89ff985187fe3604dd3dcd08e64300b` |
+| cmd1arg | `boot-control/boot-r11-emmc-cmd1arg.img` | `9860663d0bccdbb537f934c5858f641e37b376a39fe0042b0914d7779cc2f63f` |
 | QR baseline | `boot-control/boot-r11-emmc-qr3.img` | `029ee3d864906da162dee09d1936804d90673ef464fb4cd0f4621fbb259988a8` |
 
 ### Conclusion
@@ -152,7 +154,7 @@ R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1
 - CMD1 never gets a response from the card.
 - CMD inhibit cleanup works: `ps=01F800F0`, `int=00000000`.
 - Host SDHCI clock, GCC gates/root, CMD0 argument, 1.8 V signalling, power register cycle,
-  CORE_VENDOR_SPEC and the vendor ClockDxe/SdccDxe stack do not change the result.
+  CORE_VENDOR_SPEC, CMD1 OCR argument and the vendor ClockDxe/SdccDxe stack do not change the result.
 - The remaining blocker is the card-side power/reset/CMD-line state: eMMC VCC/VCCQ
   (PM660L L4 / PM660 L8), reset, or CMD-line pull-up.
 
