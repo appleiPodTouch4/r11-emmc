@@ -2,7 +2,7 @@
 """Capture JPEG frames from the R11 WiFi camera MJPEG stream."""
 import os, sys, time, urllib.request
 
-URL = os.environ.get("R11CAM_URL", "http://192.168.31.196:8080/")
+URL = os.environ.get("R11CAM_URL", "http://192.168.31.195:8080/")
 outdir = sys.argv[1]
 duration = float(sys.argv[2]) if len(sys.argv) > 2 else 60.0
 interval = float(sys.argv[3]) if len(sys.argv) > 3 else 1.0

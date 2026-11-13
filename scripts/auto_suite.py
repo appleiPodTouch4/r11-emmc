@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT.parent
 RUNS = ROOT / "runs"
-CAM = "http://192.168.31.196:8080/"
+CAM = "http://192.168.31.195:8080/"
 FASTBOOT = "/usr/local/bin/fastboot"
 OCR = ROOT / "scripts/ocr-bin"
 QRDEC = ROOT / "scripts/qrdecode-bin"

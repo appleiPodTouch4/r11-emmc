@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RUNS = ROOT / "runs"
 README = ROOT / "README.md"
-CAM = "http://192.168.31.196:8080/"
+CAM = "http://192.168.31.195:8080/"
 
 def latest_frame():
     fs = list(RUNS.glob("round*/frames/*.jpg"))
