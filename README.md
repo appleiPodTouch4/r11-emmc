@@ -147,3 +147,4 @@ clock or CMD-inhibit handling.
 | 3 | 1v8 | 2026-11-11 22:42:47 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 | 4 | pwrcycle | 2026-11-11 22:44:22 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
 | 5 | corevendor | 2026-11-11 22:45:46 | ok | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
+| gccroot | 2026-11-13 | QR R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1 |
