@@ -188,6 +188,6 @@ PIO CMD17, otherwise the FIFO returns the stale word `EFI EFI `.
 Image:
 
 ```text
-boot-control/boot-r11-emmc-passive-visible.img
+boot-control/boot-r11-emmc-passive-text.img
 sha256 a2878002bc2cdb9f076ca09b9b7a67993a4e953a4e8ee83aefc814834622dc52
 ```
