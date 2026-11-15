@@ -44,6 +44,7 @@
 #define SDHCI_CAPABILITIES    0x040u
 #define SDHCI_CORE_VENDOR     0x20Cu
 #define SDHCI_TIMEOUT_CONTROL 0x02Eu
+#define SDHCI_SOFTWARE_RESET   0x02Fu
 
 #define SDHCI_INT_CMD_COMPLETE  0x0001u
 #define SDHCI_INT_TX_COMPLETE   0x0002u
@@ -106,6 +107,22 @@ WaitBits (
 }
 
 STATIC
+VOID
+ClearCmdError (
+  VOID
+  )
+{
+  UINTN  i;
+
+  MmioWrite8 (SDCC_BASE + SDHCI_SOFTWARE_RESET, 0x02u);
+  for (i = 0; i < 1000; i++) {
+    if ((MmioRead8 (SDCC_BASE + SDHCI_SOFTWARE_RESET) & 0x02u) == 0) break;
+    gBS->Stall (10);
+  }
+  MmioWrite32 (SDCC_BASE + SDHCI_INT_STATUS, 0xFFFFFFFFu);
+}
+
+STATIC
 EFI_STATUS
 SdCommand (
   IN  UINT8   Index,
@@ -149,11 +166,13 @@ SdCommand (
                SDHCI_INT_CMD_COMPLETE | SDHCI_INT_ERROR,
                SDHCI_INT_CMD_COMPLETE, 5000) != EFI_SUCCESS)
   {
+    ClearCmdError ();
     return EFI_TIMEOUT;
   }
 
   Status = MmioRead32 (SDCC_BASE + SDHCI_INT_STATUS);
   if ((Status & SDHCI_INT_ERROR) != 0) {
+    ClearCmdError ();
     return EFI_DEVICE_ERROR;
   }
 
@@ -212,7 +231,10 @@ R11Finish (
     UINTN                         Size;
     UINTN                         X, Y;
 
-    Print (L"\r\n[R11EMMC] QR: %a\r\n", mQrPayload);
+    if (gST->ConOut != NULL) {
+      gST->ConOut->ClearScreen (gST->ConOut);
+    }
+    Print (L"\r\n[R11EMMC] PASSIVE RESULT\r\n%a\r\n\r\n", mQrPayload);
     if (!EFI_ERROR (gBS->LocateProtocol (&gEfiGraphicsOutputProtocolGuid,
                                           NULL, (VOID **)&Gop)))
     {
@@ -229,6 +251,12 @@ R11Finish (
         Y = (Gop->Mode->Info->VerticalResolution - Size) / 2;
         Gop->Blt (Gop, Bitmap, EfiBltBufferToVideo, 0, 0, X, Y, Size, Size, 0);
         FreePool (Bitmap);
+        if (gST->ConOut != NULL) {
+          gST->ConOut->SetCursorPosition (gST->ConOut, 2, 26);
+          gST->ConOut->OutputString (gST->ConOut, L"d1 = EFI PART\r\n");
+          gST->ConOut->SetCursorPosition (gST->ConOut, 2, 27);
+          gST->ConOut->OutputString (gST->ConOut, L"eMMC passive read OK\r\n");
+        }
       }
     }
   }
@@ -287,6 +315,55 @@ R11EmmcTestEntry (
   Print (L"[R11EMMC] ps=%08x hc1=%02x hc2=%04x caps=%08x vs=%08x\r\n",
          Ps, Hc1, Hc2, Caps, Vendor);
   Print (L"[R11EMMC] pwr=%02x clk=%04x\r\n", Power, Clock);
+
+  /* Passive handoff: keep ABL's initialized card/host state. */
+  for (Rca = 1; Rca <= 8; Rca++) {
+    ZeroMem (Resp, sizeof (Resp));
+    Status = SdCommand (13, Rca << 16,
+                        SDHCI_CMD_R48 | SDHCI_CMD_CRC | SDHCI_CMD_INDEX,
+                        Resp, NULL, 0);
+    Print (L"[R11EMMC] passive cmd13 rca=%u err=%r st=%08x\r\n",
+           Rca, Status, Resp[0]);
+    if (Status == EFI_SUCCESS) {
+      EFI_STATUS S16, S17;
+      CHAR8 Sig[9];
+      UINT32 V3;
+
+      V3 = MmioRead32 (SDCC_BASE + 0x250);
+      MmioWrite32 (SDCC_BASE + 0x250, V3 & ~(1u << 10));
+      MmioWrite8  (SDCC_BASE + SDHCI_SOFTWARE_RESET, 0x04u);
+      for (i = 0; i < 1000; i++) {
+        if ((MmioRead8 (SDCC_BASE + SDHCI_SOFTWARE_RESET) & 0x04u) == 0) break;
+        gBS->Stall (10);
+      }
+      MmioWrite32 (SDCC_BASE + SDHCI_INT_STATUS, 0xFFFFFFFFu);
+
+      ZeroMem (Resp, sizeof (Resp));
+      S16 = SdCommand (16, 512,
+                       SDHCI_CMD_R48 | SDHCI_CMD_CRC | SDHCI_CMD_INDEX,
+                       Resp, NULL, 0);
+      ZeroMem (Block, sizeof (Block));
+      ZeroMem (Resp, sizeof (Resp));
+      S17 = SdCommand (17, 1, SDHCI_CMD_R48 | SDHCI_CMD_CRC |
+                       SDHCI_CMD_INDEX | SDHCI_CMD_DATA,
+                       Resp, Block, 1);
+      D1 = 0;
+      for (i = 0; i < 8; i++) D1 = (D1 << 8) | Block[i];
+      for (i = 0; i < 8; i++) {
+        Sig[i] = ((Block[i] >= 0x20u) && (Block[i] < 0x7fu)) ? (CHAR8)Block[i] : '.';
+      }
+      Sig[8] = 0;
+      Print (L"[R11EMMC] d1=%016lx sig=%a c16=%r c17=%r\r\n",
+             D1, Sig, S16, S17);
+      AsciiSPrint (mQrPayload, sizeof (mQrPayload),
+                   "R11|stage=passive|rca=%u|c16=%r|c17=%r|d1=%016lx|sig=%a",
+                   Rca, S16, S17, D1, Sig);
+      R11Finish ();
+    }
+  }
+  AsciiSPrint (mQrPayload, sizeof (mQrPayload),
+               "R11|stage=passive|rca=0|never=1");
+  R11Finish ();
 
   Stage (2, 5, L"enable 3.3 V / 400 kHz / 1-bit");
 

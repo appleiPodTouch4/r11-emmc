@@ -164,3 +164,30 @@ R11|stage=cmd1|ps=01F800F0|int=00000000|c0=1|c1=3|never=1
 - Device returns to Fastboot after each test.
 - Camera: `http://192.168.31.195:8080/`
 - No automatic loop is running after this suite completed.
+
+
+## 2026-11-15 passive handoff breakthrough
+
+After the stock OFP restore, `fastboot boot` works again.  A passive test that
+does **not** touch SDHCI/GCC/power read the initialized card left by ABL:
+
+```text
+R11|stage=passive|rca=2|c16=Success|c17=Success|d1=4546492050415254|sig=EFI PART
+```
+
+- RCA = 2
+- CMD13 READY
+- CMD16 SET_BLOCKLEN=512
+- CMD17 LBA1 success
+- LBA1 starts with the GPT signature `EFI PART`
+
+This corrects the earlier CMD1 diagnosis: the card is already initialized at
+UEFI handoff.  `CORE_VENDOR_SPEC3` bit 10 must be cleared and DAT reset before a
+PIO CMD17, otherwise the FIFO returns the stale word `EFI EFI `.
+
+Image:
+
+```text
+boot-control/boot-r11-emmc-passive-visible.img
+sha256 a2878002bc2cdb9f076ca09b9b7a67993a4e953a4e8ee83aefc814834622dc52
+```
