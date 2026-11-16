@@ -328,6 +328,8 @@ R11EmmcTestEntry (
       EFI_STATUS S16, S17;
       CHAR8 Sig[9];
       UINT32 V3;
+      UINT64 GptEntryLba;
+      UINT32 GptNent, GptEsize;
 
       V3 = MmioRead32 (SDCC_BASE + 0x250);
       MmioWrite32 (SDCC_BASE + 0x250, V3 & ~(1u << 10));
@@ -353,11 +355,24 @@ R11EmmcTestEntry (
         Sig[i] = ((Block[i] >= 0x20u) && (Block[i] < 0x7fu)) ? (CHAR8)Block[i] : '.';
       }
       Sig[8] = 0;
-      Print (L"[R11EMMC] d1=%016lx sig=%a c16=%r c17=%r\r\n",
-             D1, Sig, S16, S17);
-      AsciiSPrint (mQrPayload, sizeof (mQrPayload),
-                   "R11|stage=passive|rca=%u|c16=%r|c17=%r|d1=%016lx|sig=%a",
-                   Rca, S16, S17, D1, Sig);
+      CopyMem (&GptEntryLba, Block + 72, sizeof (GptEntryLba));
+      CopyMem (&GptNent, Block + 80, sizeof (GptNent));
+      CopyMem (&GptEsize, Block + 84, sizeof (GptEsize));
+      Print (L"[R11EMMC] d1=%016lx sig=%a c16=%r c17=%r el=%lu ne=%u es=%u\r\n",
+             D1, Sig, S16, S17, GptEntryLba, GptNent, GptEsize);
+      {
+        EFI_STATUS S17b;
+        UINT8 Block2[512];
+        ZeroMem (Block2, sizeof (Block2));
+        S17b = SdCommand (17, 2, SDHCI_CMD_R48 | SDHCI_CMD_CRC |
+                          SDHCI_CMD_INDEX | SDHCI_CMD_DATA,
+                          Resp, Block2, 1);
+        Print (L"[R11EMMC] lba2 err=%r b0=%02x%02x%02x%02x\r\n",
+               S17b, Block2[0], Block2[1], Block2[2], Block2[3]);
+        AsciiSPrint (mQrPayload, sizeof (mQrPayload),
+                     "R11|stage=passive|rca=%u|c17=%r|d1=%016lx|sig=%a|el=%lu|ne=%u|es=%u|l2=%r",
+                     Rca, S17, D1, Sig, GptEntryLba, GptNent, GptEsize, S17b);
+      }
       R11Finish ();
     }
   }

@@ -191,3 +191,33 @@ Image:
 boot-control/boot-r11-emmc-passive-text.img
 sha256 a2878002bc2cdb9f076ca09b9b7a67993a4e953a4e8ee83aefc814834622dc52
 ```
+
+## Current state (2026-11-16)
+
+The passive handoff path is now proven end to end at UEFI:
+
+```text
+R11|stage=passive|rca=2|c16=Success|c17=Success|d1=4546492050415254|sig=EFI PART
+```
+
+The same boot state also reads LBA2 successfully, and the GPT header decodes as:
+
+```text
+entry_lba=2
+num_entries=72
+entry_size=128
+```
+
+This is the state that `Driver/R11EmmcTestDxe.c` now exposes in its QR payload
+(`el`, `ne`, `es`, `l2`). The test driver is removed from the normal UEFI build
+after testing, so ordinary images do not halt in `CpuDeadLoop()`.
+
+The integrated XNU path now reaches the partition table as well. The panel
+reports the selected `userdata` partition and its LBA/count, and the GPT
+partition names are visible. An iOS 16.5 APFS rootfs was written to `userdata`;
+process 1 currently stops at `/sbin/launchd` with `ENOEXEC`, which is a
+code-signing/userspace issue rather than an eMMC read failure.
+
+The modified TWRP boot image and rootfs staging files are in `../twrp-work` and
+are not committed to this repository.
+
