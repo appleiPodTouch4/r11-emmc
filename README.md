@@ -221,3 +221,15 @@ code-signing/userspace issue rather than an eMMC read failure.
 The modified TWRP boot image and rootfs staging files are in `../twrp-work` and
 are not committed to this repository.
 
+## Standard userdata result (2026-11-16)
+
+`./unixnu build userdata` produced the SHNGROOT layout (OS at `0x100000`,
+SystemOS at `0x14fa00000`). The XNU eMMC driver now skips the 1 MiB manifest
+when it sees `SHNGROOT`, and on hardware the root window was:
+
+```text
+part=70800/111196127 ok=1 gpt=72@2
+```
+
+`launchd` exec succeeds from this standard OS window. The remaining Stage 7
+gap is the Data volume (`/private/var`), not the eMMC read path.
